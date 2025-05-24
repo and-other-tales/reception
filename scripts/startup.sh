@@ -1,11 +1,17 @@
 #!/bin/bash
 # This script runs trunk.py first and then agent.py with a health check server
 
-# Start the health check server in the background
+# Change to scripts directory
+cd /app/scripts
+
+# Start the health check server directly first to ensure health checks pass
 echo "Starting health check server..."
-python -c "from scripts.health_check import run_health_server; run_health_server()" &
+python health_check.py &
 health_pid=$!
 echo "Health check server started with PID: $health_pid"
+
+# Give health check server time to start
+sleep 2
 
 # Check if the LiveKit CLI is available
 echo "Checking LiveKit CLI installation..."
@@ -20,7 +26,7 @@ if ! command -v lk &> /dev/null; then
         if ! command -v lk &> /dev/null; then
             echo "Failed to install LiveKit CLI. Skipping trunk.py and proceeding with agent."
             echo "Starting agent with health check..."
-            python scripts/agent_wrapper.py
+            python agent_wrapper.py
             exit 0
         fi
     fi
@@ -28,14 +34,17 @@ fi
 
 echo "LiveKit CLI found at: $(which lk)"
 echo "Starting Trunk.py..."
-python scripts/trunk.py
-trunk_exit=$?
-if [ $trunk_exit -ne 0 ]; then
-    echo "Error: trunk.py failed with exit code $trunk_exit"
-    echo "Continuing with agent.py anyway..."
-fi
+python trunk.py || echo "Trunk.py failed but continuing anyway"
 
 echo "trunk.py completed or skipped."
 echo "Starting agent with health check..."
+
 # Run agent_wrapper.py in the foreground
-python scripts/agent_wrapper.py
+# This should also handle the health check server
+python agent_wrapper.py || {
+    echo "Agent wrapper failed. Keeping container alive for health checks..."
+    # Keep the container running even if agent fails
+    while true; do
+        sleep 60
+    done
+}

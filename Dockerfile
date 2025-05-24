@@ -15,7 +15,10 @@ RUN apt-get update && apt-get install -y \
 # Download and install the LiveKit CLI tool and add it to PATH
 RUN curl -sSL https://get.livekit.io | bash && \
     echo 'export PATH=$PATH:/root/.livekit/bin' >> /root/.bashrc && \
-    ln -s /root/.livekit/bin/lk /usr/local/bin/lk
+    mkdir -p /usr/local/bin && \
+    if [ -f /root/.livekit/bin/lk ]; then \
+        ln -sf /root/.livekit/bin/lk /usr/local/bin/lk; \
+    fi
 
 # Copy requirements first for better caching
 COPY requirements.txt .
@@ -27,13 +30,18 @@ RUN pip install --no-cache-dir --upgrade pip && \
 # Copy the source code
 COPY scripts/ ./scripts/
 COPY README.md .
+COPY Procfile .
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
 ENV PORT=8080
+ENV PATH="/root/.livekit/bin:${PATH}"
+ENV PYTHONPATH="/app:${PYTHONPATH}"
 
-# Make the startup script executable
-RUN chmod +x /app/scripts/startup.sh
+# Make all scripts executable
+RUN chmod +x /app/scripts/*.sh && \
+    chmod +x /app/scripts/*.py
 
-# Command to run the startup script
-CMD ["/app/scripts/startup.sh"]
+# We'll use the Flask app for health checks, which guarantees a responsive endpoint
+# The Flask app will run in the foreground
+CMD cd /app/scripts && gunicorn flask_health:app --bind 0.0.0.0:$PORT

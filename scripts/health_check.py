@@ -38,3 +38,8 @@ def run_health_server():
     health_thread = threading.Thread(target=start_health_server, daemon=True)
     health_thread.start()
     return health_thread
+
+# Allow direct execution
+if __name__ == "__main__":
+    # Start the health server directly
+    start_health_server()
