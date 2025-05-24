@@ -78,16 +78,21 @@ def create_inbound_trunk(phone_number, livekit_url, livekit_api_key, livekit_api
         return None
 
 def create_dispatch_rule(trunk_sid, livekit_url, livekit_api_key, livekit_api_secret):
-    dispatch_rule_data = {
-        "name": "Inbound Dispatch Rule",
-        "trunk_ids": [trunk_sid],
-        "rule": {
-            "dispatchRuleIndividual": {
-                "roomPrefix": "call-"
-            }
-        }
-    }
-    with open('dispatch_rule.json', 'w') as f:
+    # Use our custom dispatch rule file that includes agent configuration
+    dispatch_rule_file = 'pi_dispatch_rule.json'
+    
+    # Add trunk_ids to the file if not present
+    with open(dispatch_rule_file, 'r') as f:
+        dispatch_rule_data = json.load(f)
+    
+    # Add trunk_id to the rule
+    if "trunk_ids" not in dispatch_rule_data:
+        dispatch_rule_data["trunk_ids"] = [trunk_sid]
+    elif trunk_sid not in dispatch_rule_data["trunk_ids"]:
+        dispatch_rule_data["trunk_ids"].append(trunk_sid)
+    
+    # Write the updated rule back to file
+    with open(dispatch_rule_file, 'w') as f:
         json.dump(dispatch_rule_data, f, indent=4)
 
     # Check if the lk command is available
@@ -99,7 +104,7 @@ def create_dispatch_rule(trunk_sid, livekit_url, livekit_api_key, livekit_api_se
 
     try:
         result = subprocess.run(
-            ['lk', 'sip', 'dispatch-rule', 'create', 'dispatch_rule.json', '--url', livekit_url.replace("wss", "https"), '--api-key', livekit_api_key, '--api-secret', livekit_api_secret],
+            ['lk', 'sip', 'dispatch-rule', 'create', dispatch_rule_file, '--url', livekit_url.replace("wss", "https"), '--api-key', livekit_api_key, '--api-secret', livekit_api_secret],
             capture_output=True,
             text=True
         )

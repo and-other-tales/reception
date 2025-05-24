@@ -1,0 +1,14 @@
+{
+  "name": "PI-Receptionist Dispatch Rule",
+  "rule": {
+    "dispatchRuleIndividual": {
+      "roomPrefix": "call-"
+    }
+  },
+  "roomConfig": {
+    "agents": [{
+      "agentName": "pi-receptionist",
+      "metadata": "{\"service_type\": \"reception\"}"
+    }]
+  }
+}
