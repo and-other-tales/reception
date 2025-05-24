@@ -12,8 +12,10 @@ RUN apt-get update && apt-get install -y \
     python3-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Download and install the LiveKit CLI tool
-RUN curl -sSL https://get.livekit.io | bash
+# Download and install the LiveKit CLI tool and add it to PATH
+RUN curl -sSL https://get.livekit.io | bash && \
+    echo 'export PATH=$PATH:/root/.livekit/bin' >> /root/.bashrc && \
+    ln -s /root/.livekit/bin/lk /usr/local/bin/lk
 
 # Copy requirements first for better caching
 COPY requirements.txt .

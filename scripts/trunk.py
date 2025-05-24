@@ -42,28 +42,39 @@ def create_inbound_trunk(phone_number, livekit_url, livekit_api_key, livekit_api
     with open('inbound_trunk.json', 'w') as f:
         json.dump(trunk_data, f, indent=4)
 
-    result = subprocess.run(
-        ['lk', 'sip', 'inbound', 'create', 'inbound_trunk.json', '--url', livekit_url.replace("wss", "https"), '--api-key', livekit_api_key, '--api-secret', livekit_api_secret],
-        capture_output=True,
-        text=True,
-        cwd=os.getcwd(),
-    )
-
-    if result.returncode != 0:
-        logging.error(f"Error executing command: {result.stderr}")
-        logging.error(f"Command output: {result.stdout}")
+    # Check if the lk command is available
+    try:
+        subprocess.run(['which', 'lk'], check=True, capture_output=True, text=True)
+    except subprocess.CalledProcessError:
+        logging.error("LiveKit CLI (lk) not found in PATH. Cannot create inbound trunk.")
         return None
 
-    stdout_output = result.stdout
-    print(stdout_output)
-    print("123123", result.stdout)
-    match = re.search(r'ST_\w+', result.stdout)
-    if match:
-        inbound_trunk_sid = match.group(0)
-        logging.info(f"Created inbound trunk with SID: {inbound_trunk_sid}")
-        return inbound_trunk_sid
-    else:
-        logging.error("Could not find inbound trunk SID in output.")
+    try:
+        result = subprocess.run(
+            ['lk', 'sip', 'inbound', 'create', 'inbound_trunk.json', '--url', livekit_url.replace("wss", "https"), '--api-key', livekit_api_key, '--api-secret', livekit_api_secret],
+            capture_output=True,
+            text=True,
+            cwd=os.getcwd(),
+        )
+
+        if result.returncode != 0:
+            logging.error(f"Error executing command: {result.stderr}")
+            logging.error(f"Command output: {result.stdout}")
+            return None
+
+        stdout_output = result.stdout
+        print(stdout_output)
+        print("123123", result.stdout)
+        match = re.search(r'ST_\w+', result.stdout)
+        if match:
+            inbound_trunk_sid = match.group(0)
+            logging.info(f"Created inbound trunk with SID: {inbound_trunk_sid}")
+            return inbound_trunk_sid
+        else:
+            logging.error("Could not find inbound trunk SID in output.")
+            return None
+    except FileNotFoundError:
+        logging.error("LiveKit CLI (lk) not found in PATH. Cannot create inbound trunk.")
         return None
 
 def create_dispatch_rule(trunk_sid, livekit_url, livekit_api_key, livekit_api_secret):
@@ -79,47 +90,89 @@ def create_dispatch_rule(trunk_sid, livekit_url, livekit_api_key, livekit_api_se
     with open('dispatch_rule.json', 'w') as f:
         json.dump(dispatch_rule_data, f, indent=4)
 
-    result = subprocess.run(
-        ['lk', 'sip', 'dispatch-rule', 'create', 'dispatch_rule.json', '--url', livekit_url.replace("wss", "https"), '--api-key', livekit_api_key, '--api-secret', livekit_api_secret],
-        capture_output=True,
-        text=True
-    )
-
-    if result.returncode != 0:
-        logging.error(f"Error executing command: {result.stderr}")
+    # Check if the lk command is available
+    try:
+        subprocess.run(['which', 'lk'], check=True, capture_output=True, text=True)
+    except subprocess.CalledProcessError:
+        logging.error("LiveKit CLI (lk) not found in PATH. Cannot create dispatch rule.")
         return
 
-    logging.info(f"Dispatch rule created: {result.stdout}")
+    try:
+        result = subprocess.run(
+            ['lk', 'sip', 'dispatch-rule', 'create', 'dispatch_rule.json', '--url', livekit_url.replace("wss", "https"), '--api-key', livekit_api_key, '--api-secret', livekit_api_secret],
+            capture_output=True,
+            text=True
+        )
+
+        if result.returncode != 0:
+            logging.error(f"Error executing command: {result.stderr}")
+            return
+
+        logging.info(f"Dispatch rule created: {result.stdout}")
+    except FileNotFoundError:
+        logging.error("LiveKit CLI (lk) not found in PATH. Cannot create dispatch rule.")
+        return
 
 def main():
     load_dotenv()
     logging.basicConfig(level=logging.INFO)
 
-    account_sid = get_env_var("TWILIO_ACCOUNT_SID")
-    auth_token = get_env_var("TWILIO_AUTH_TOKEN")
-    phone_number = get_env_var("TWILIO_PHONE_NUMBER")
-    livekit_sip_uri = get_env_var("LIVEKIT_SIP_URI")
-    livekit_url = get_env_var("LIVEKIT_URL")
-    livekit_api_key = get_env_var("LIVEKIT_API_KEY")
-    liveket_api_secret = get_env_var("LIVEKIT_API_SECRET")
+    try:
+        account_sid = get_env_var("TWILIO_ACCOUNT_SID")
+        auth_token = get_env_var("TWILIO_AUTH_TOKEN")
+        phone_number = get_env_var("TWILIO_PHONE_NUMBER")
+        livekit_sip_uri = get_env_var("LIVEKIT_SIP_URI")
+        livekit_url = get_env_var("LIVEKIT_URL")
+        livekit_api_key = get_env_var("LIVEKIT_API_KEY")
+        liveket_api_secret = get_env_var("LIVEKIT_API_SECRET")
+    except SystemExit:
+        logging.error("Missing required environment variables. Skipping trunk setup.")
+        return
 
-    client = Client(account_sid, auth_token)
-    client = Client(account_sid, auth_token)
+    # Check if the lk command is in the PATH
+    try:
+        lk_path = subprocess.run(['which', 'lk'], check=True, capture_output=True, text=True).stdout.strip()
+        logging.info(f"Found LiveKit CLI at: {lk_path}")
+    except subprocess.CalledProcessError:
+        logging.error("LiveKit CLI (lk) not found in PATH. Checking alternative locations...")
+        lk_paths = [
+            "/root/.livekit/bin/lk",
+            "/usr/local/bin/lk",
+            "/usr/bin/lk"
+        ]
+        found = False
+        for path in lk_paths:
+            if os.path.exists(path) and os.access(path, os.X_OK):
+                logging.info(f"Found LiveKit CLI at: {path}")
+                # Add the directory to PATH
+                os.environ["PATH"] += f":{os.path.dirname(path)}"
+                found = True
+                break
+        
+        if not found:
+            logging.error("LiveKit CLI not found. Cannot continue with trunk setup.")
+            return
 
-    existing_trunks = client.trunking.v1.trunks.list()
-    livekit_trunk = next(
-        (trunk for trunk in existing_trunks if trunk.friendly_name == "LiveKit Trunk"),
-        None
-    )
+    try:
+        client = Client(account_sid, auth_token)
 
-    if not livekit_trunk:
-        livekit_trunk = create_livekit_trunk(client, livekit_sip_uri)
-    else:
-        logging.info("LiveKit Trunk already exists. Using the existing trunk.")
+        existing_trunks = client.trunking.v1.trunks.list()
+        livekit_trunk = next(
+            (trunk for trunk in existing_trunks if trunk.friendly_name == "LiveKit Trunk"),
+            None
+        )
 
-    inbound_trunk_sid = create_inbound_trunk(phone_number, livekit_url, livekit_api_key, liveket_api_secret)
-    if inbound_trunk_sid:
-        create_dispatch_rule(inbound_trunk_sid, livekit_url, livekit_api_key, liveket_api_secret)
+        if not livekit_trunk:
+            livekit_trunk = create_livekit_trunk(client, livekit_sip_uri)
+        else:
+            logging.info("LiveKit Trunk already exists. Using the existing trunk.")
+
+        inbound_trunk_sid = create_inbound_trunk(phone_number, livekit_url, livekit_api_key, liveket_api_secret)
+        if inbound_trunk_sid:
+            create_dispatch_rule(inbound_trunk_sid, livekit_url, livekit_api_key, liveket_api_secret)
+    except Exception as e:
+        logging.error(f"An error occurred during trunk setup: {str(e)}")
+        # Continue execution even if there's an error
 
 if __name__ == "__main__":
     main()
