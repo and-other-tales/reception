@@ -18,12 +18,12 @@ RUN curl -sSL https://get.livekit.io | bash
 # Copy requirements first for better caching
 COPY requirements.txt .
 
-# Install dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+# Upgrade pip and install dependencies
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
 
 # Copy the source code
 COPY scripts/ ./scripts/
-COPY images/ ./images/
 COPY README.md .
 
 # Set environment variables
