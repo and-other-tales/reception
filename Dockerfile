@@ -42,6 +42,8 @@ ENV PYTHONPATH="/app:${PYTHONPATH}"
 RUN chmod +x /app/scripts/*.sh && \
     chmod +x /app/scripts/*.py
 
-# We'll use the Flask app for health checks, which guarantees a responsive endpoint
-# The Flask app will run in the foreground
-CMD cd /app/scripts && gunicorn flask_health:app --bind 0.0.0.0:$PORT
+# Make sure run_all.sh is executable
+RUN chmod +x /app/scripts/run_all.sh
+
+# Set the entry point to run_all.sh
+CMD ["/app/scripts/run_all.sh"]
