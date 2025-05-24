@@ -28,6 +28,7 @@ COPY README.md .
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
+ENV PORT=8080
 
 # Make the startup script executable
 RUN chmod +x /app/scripts/startup.sh

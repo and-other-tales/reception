@@ -17,15 +17,24 @@ steps:
       - '--image'
       - 'gcr.io/$PROJECT_ID/livekit-voice-ai-agent:$COMMIT_SHA'
       - '--region'
-      - 'us-central1'  # Change this to your preferred region
-      - '--platform'
+      - 'us-central1'  # Change this to your preferred region      - '--platform'
       - 'managed'
       - '--allow-unauthenticated'  # Remove if you want to require authentication
-      - '--cpu'      - '1'
-      - '--memory'
+      - '--cpu'
+      - '1'      - '--memory'
       - '512Mi'
+      - '--port'
+      - '8080'
       - '--set-env-vars'
-      - 'OPENAI_API_KEY=${_OPENAI_API_KEY},TWILIO_ACCOUNT_SID=${_TWILIO_ACCOUNT_SID},TWILIO_AUTH_TOKEN=${_TWILIO_AUTH_TOKEN},TWILIO_PHONE_NUMBER=${_TWILIO_PHONE_NUMBER},LIVEKIT_SIP_URI=${_LIVEKIT_SIP_URI},LIVEKIT_URL=${_LIVEKIT_URL},LIVEKIT_API_KEY=${_LIVEKIT_API_KEY},LIVEKIT_API_SECRET=${_LIVEKIT_API_SECRET}'
+      - 'PORT=8080,OPENAI_API_KEY=${_OPENAI_API_KEY},TWILIO_ACCOUNT_SID=${_TWILIO_ACCOUNT_SID},TWILIO_AUTH_TOKEN=${_TWILIO_AUTH_TOKEN},TWILIO_PHONE_NUMBER=${_TWILIO_PHONE_NUMBER},LIVEKIT_SIP_URI=${_LIVEKIT_SIP_URI},LIVEKIT_URL=${_LIVEKIT_URL},LIVEKIT_API_KEY=${_LIVEKIT_API_KEY},LIVEKIT_API_SECRET=${_LIVEKIT_API_SECRET}'
+      - '--min-instances'
+      - '1'
+      - '--max-instances'
+      - '10'
+      - '--health-checks'
+      - 'http'
+      - '--health-check-path'
+      - '/health'
 
 # Store images in Container Registry
 images:

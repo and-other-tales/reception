@@ -55,3 +55,7 @@ async def main_entry(ctx: JobContext):
 # Entry point for the application
 if __name__ == "__main__":
     cli.run_app(WorkerOptions(entrypoint_fnc=main_entry))
+
+def main():
+    """Function to be called from wrapper scripts"""
+    cli.run_app(WorkerOptions(entrypoint_fnc=main_entry))
