@@ -25,6 +25,8 @@ COPY requirements.txt .
 
 # Upgrade pip and install dependencies
 RUN pip install --no-cache-dir --upgrade pip && \
+    # Fix werkzeug and flask compatibility issue
+    pip install --no-cache-dir werkzeug==2.0.3 flask==2.0.3 && \
     pip install --no-cache-dir -r requirements.txt
 
 # Copy the source code
