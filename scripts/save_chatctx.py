@@ -222,7 +222,7 @@ async def entrypoint(ctx: JobContext):
 
     ctx.add_shutdown_callback(finish_queue)
 
-    await agent.say("Hello and thank you for calling PI & Other Tales. This is the reception desk. How may I assist you today?", allow_interruptions=True)
+    await agent.say("Hello Pie & Other Tales. *cough* excuse me, sorry. *cough again* How can I help?", allow_interruptions=True)
 
 
 if __name__ == "__main__":
